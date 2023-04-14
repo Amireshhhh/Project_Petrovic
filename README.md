@@ -4,38 +4,40 @@
 
 
 
-****Function****
-conditional_independence_test <- function(AAPL, XLU, FTSE, XLV, XLF, XLP, XLK, QQQ, XLE, HSI) {
-  
-  fixed_var <- returns_data$DXY
-  AAPL <- returns_data$AAPL
-  XLU <- returns_data$XLU
-  FTSE <- returns_data$FTSE
-  XLV <- returns_data$XLV
-  XLF <- returns_data$XLF
-  XLP <- returns_data$XLP
-  XLK <- returns_data$XLK
-  QQQ <- returns_data$QQQ
-  XLE <- returns_data$XLE
-  HSI <- returns_data$HSI
-  # create a list of all possible pairwise combinations of variables
-  variable_pairs <- combn(c(AAPL, XLU, FTSE, XLV, XLF, XLP, XLK, QQQ, XLE, HSI), 2)
-  
-  # loop through each variable pair and compute the conditional independence test
-  for (i in 1:ncol(variable_pairs)) {
-    var1 <- variable_pairs[1,i]
-    var2 <- variable_pairs[2,i]
-    
-    # create a data frame with the two variables and the fixed variable
-    data <- data.frame(var1, var2, fixed_var)
-    
-    # perform the conditional independence test using the ci.test function
-    result <- ci.test(var1 ~ var2 | fixed_var, data = returns_data)
-    
-    # print the result, including the variable names and p-value
-    cat(paste0("Conditional independence test between ", var1, " and ", var2, " (given ", fixed_var, "):\n"))
-    cat(paste0("p-value = ", result$p.value, "\n\n"))
-  }
-}
+# Function
+# load the bnlearn package for ci.test function
+library(bnlearn)
 
-I do not know whats wrong but the function is not working for me I tried. I hope someone else can figure out whats wrong.
+# define a function that takes a dataframe of returns, a type of test and a fixed variable
+# it returns a dataframe with p-values and correlations for every pair of stocks given the fixed variable
+ci_test_pairs <- function(df, test, fixed) {
+  # get the names of the columns that are not the fixed variable
+  stocks <- names(df)[names(df) != fixed]
+  # create an empty dataframe to store the results
+  results <- data.frame()
+  # loop over all pairs of stocks
+  for (i in 1:(length(stocks) - 1)) {
+    for (j in (i + 1):length(stocks)) {
+      # get the names of the pair
+      x <- stocks[i]
+      y <- stocks[j]
+      # perform the conditional independence test given the fixed variable
+      test_result <- ci.test(x, y, fixed, data = df, test = test)
+      # extract the p-value and the correlation from the test result
+      p_value <- test_result$p.value
+      correlation <- cor(df[[x]], df[[y]])
+      # append a row to the results dataframe with the pair names, p-value and correlation
+      results <- rbind(results, data.frame(x = x, y = y, p_value = p_value, correlation = correlation))
+    }
+  }
+  # return the results dataframe
+  return(results)
+}
+# apply the function with linear correlation test and DXY as fixed variable
+results <- ci_test_pairs(returns_data, test = "cor", fixed = "DXY")
+
+# print the results
+print(results)
+
+
+Guys i was able to create the function. Let me know Amir if this is what you wanted?
